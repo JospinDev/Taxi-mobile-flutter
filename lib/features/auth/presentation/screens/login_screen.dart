@@ -1,0 +1,277 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../../app/router/app_router.dart';
+import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_space.dart';
+import '../../../../app/theme/app_typography.dart';
+import '../../../../../core/utils/validators.dart';
+import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_feedback.dart';
+import '../../../shared/widgets/app_sections.dart';
+import '../../../shared/widgets/app_text_field.dart';
+import '../../providers/auth_controller.dart';
+
+/// Login (client & driver).
+///
+/// The "Je suis chauffeur" toggle only changes which registration flow the
+/// link points to — the login endpoint is the same for both roles; the API
+/// answers with the user's real role and the router routes accordingly.
+class LoginScreen extends ConsumerStatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _usernameCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  bool _driverMode = false;
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _usernameCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _loading = true);
+    try {
+      await ref.read(authControllerProvider.notifier).login(
+        username: _usernameCtrl.text,
+        password: _passwordCtrl.text,
+      );
+      if (mounted) AppToast.success(context, 'Bienvenue !');
+    } catch (e) {
+      if (mounted) AppToast.apiError(context, e);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpace.xl),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: AppSpace.xxl),
+                _logo(),
+                const SizedBox(height: AppSpace.lg),
+                Text(
+                  'Bon retour',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.h1,
+                ),
+                Text(
+                  'Connectez-vous pour continuer',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.body.copyWith(color: AppColors.muted),
+                ),
+                const SizedBox(height: AppSpace.xl),
+                _RoleToggle(
+                  driverMode: _driverMode,
+                  onChanged: (v) => setState(() => _driverMode = v),
+                ),
+                const SizedBox(height: AppSpace.xl),
+                AppTextField(
+                  label: 'Nom d\'utilisateur',
+                  hint: 'ex: jean',
+                  controller: _usernameCtrl,
+                  prefixIcon: Icons.person_outline_rounded,
+                  textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.username],
+                  validator: (v) =>
+                      Validators.required(v, 'Nom d\'utilisateur'),
+                ),
+                gapMd,
+                AppTextField(
+                  label: 'Mot de passe',
+                  hint: '••••••••',
+                  controller: _passwordCtrl,
+                  prefixIcon: Icons.lock_outline_rounded,
+                  obscureText: true,
+                  textInputAction: TextInputAction.done,
+                  autofillHints: const [AutofillHints.password],
+                  onSubmitted: (_) => _submit(),
+                  validator: (v) => Validators.required(v, 'Mot de passe'),
+                ),
+                const SizedBox(height: AppSpace.xs),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => AppToast.info(
+                      context,
+                      'Réinitialisation du mot de passe : contactez le support.',
+                    ),
+                    child: const Text('Mot de passe oublié ?'),
+                  ),
+                ),
+                gapMd,
+                AppButton(
+                  label: 'Se connecter',
+                  loading: _loading,
+                  onPressed: _submit,
+                ),
+                const SizedBox(height: AppSpace.lg),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _driverMode ? 'Pas encore chauffeur ?' : 'Nouveau ici ?',
+                      style: AppTypography.body.copyWith(
+                        color: AppColors.muted,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => context.push(
+                        _driverMode
+                            ? Routes.registerDriver
+                            : Routes.registerClient,
+                      ),
+                      child: Text(
+                        _driverMode ? 'Devenir chauffeur' : 'Créer un compte',
+                        style: AppTypography.button.copyWith(
+                          color: AppColors.brandDeep,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpace.xl),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _logo() => Center(
+    child: Container(
+      width: 76,
+      height: 76,
+      decoration: BoxDecoration(
+        gradient: AppColors.brandGradient,
+        borderRadius: AppRadius.rXl,
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x4DE8A400),
+            blurRadius: 26,
+            offset: Offset(0, 10),
+            spreadRadius: -6,
+          ),
+        ],
+      ),
+      child: const Icon(Icons.local_taxi_rounded, size: 40, color: AppColors.ink),
+    ),
+  );
+}
+
+/// iOS-like segmented control: "Je suis client" / "Je suis chauffeur".
+class _RoleToggle extends StatelessWidget {
+  const _RoleToggle({required this.driverMode, required this.onChanged});
+
+  final bool driverMode;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.rPill,
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Row(
+        children: [
+          _Segment(
+            label: 'Je suis client',
+            icon: Icons.person_outline_rounded,
+            selected: !driverMode,
+            onTap: () => onChanged(false),
+          ),
+          _Segment(
+            label: 'Je suis chauffeur',
+            icon: Icons.drive_eta_rounded,
+            selected: driverMode,
+            onTap: () => onChanged(true),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Segment extends StatelessWidget {
+  const _Segment({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.ink : Colors.transparent,
+            borderRadius: AppRadius.rPill,
+            boxShadow: selected
+                ? const [
+                    BoxShadow(
+                      color: Color(0x260F172A),
+                      blurRadius: 10,
+                      offset: Offset(0, 3),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 17,
+                color: selected ? AppColors.brand : AppColors.muted,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: AppTypography.caption.copyWith(
+                  color: selected ? Colors.white : AppColors.muted,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
