@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_space.dart';
@@ -15,6 +16,7 @@ class AppCard extends StatelessWidget {
     this.border,
     this.shadow,
     this.radius,
+    this.animate = true,
   });
 
   final Widget child;
@@ -26,8 +28,20 @@ class AppCard extends StatelessWidget {
   final List<BoxShadow>? shadow;
   final BorderRadius? radius;
 
+  /// Subtle fade + rise when the card appears (every screen gets it for free).
+  final bool animate;
+
   @override
   Widget build(BuildContext context) {
+    final card = _build(context);
+    if (!animate) return card;
+    return card
+        .animate()
+        .fadeIn(duration: 260.ms, curve: Curves.easeOutCubic)
+        .slideY(begin: .04, end: 0, duration: 320.ms, curve: Curves.easeOutCubic);
+  }
+
+  Widget _build(BuildContext context) {
     final r = radius ?? AppRadius.rLg;
     // `AppShadow.card` is a getter (not a const), so it can't be a
     // default parameter value in a const constructor. Resolve it here.

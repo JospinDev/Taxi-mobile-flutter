@@ -62,6 +62,13 @@ class AppColors {
     colors: [Color(0xFF34D399), Color(0xFF059669)],
   );
 
+  /// Indigo → violet gradient — admin portal header (home hero).
+  static const LinearGradient portalGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF4F5BEA), Color(0xFF7C3AED)],
+  );
+
   /// Status color mapping shared by chips/badges across the app.
   static Color status(String key) => switch (key) {
     'available' || 'active' || 'validated' || 'approved' || 'online' => success,

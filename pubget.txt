@@ -1,0 +1,51 @@
+Resolving dependencies...
+Downloading packages...
++ archive 4.5.2
++ code_assets 1.2.1 (2.1.0 available)
+  cross_file 0.3.5+5 (0.4.0 available)
+  cupertino_ui 1.1.3 (1.1.4 available)
++ dart_earcut 1.2.0
++ dart_polylabel2 1.0.0
+  dbus 0.7.15 (0.8.0 available)
+  file_picker_linux 2.0.0 (2.0.2 available)
++ flutter_map 8.3.2
+  geolocator 14.1.1 (14.1.2 available)
+  geolocator_android 5.1.1+1 (5.2.1 available)
+  geolocator_apple 2.3.15 (2.4.2 available)
+  geolocator_platform_interface 4.4.0 (4.4.1 available)
+  go_router 18.1.0 (18.1.1 available)
+  gsettings 0.2.8 (0.2.9 available)
++ hooks 2.0.2 (2.2.0 available)
++ jni 1.1.0
++ jni_flutter 1.0.4+1
++ jni_util 1.0.0
++ latlong2 0.9.1 (0.10.1 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  material_ui 1.7.0 (1.8.0 available)
+  meta 1.18.3 (1.19.0 available)
++ mgrs_dart 3.0.0
++ objective_c 9.5.0 (9.6.2 available)
++ package_config 3.0.0
++ path_provider 2.1.6
++ path_provider_android 2.3.1
++ path_provider_foundation 2.6.0
+  petitparser 7.0.2 (7.1.0 available)
++ posix 6.5.2
++ proj4dart 3.0.0
++ pub_semver 2.2.1
++ record_use 0.6.0 (1.1.1 available)
+  shared_preferences_android 2.4.28 (2.5.1 available)
+  shared_preferences_foundation 2.5.7 (2.6.0 available)
++ simple_sparse_list 0.1.4
+  test_api 0.7.12 (0.7.15 available)
++ unicode 1.1.9
+  vector_graphics 1.2.3 (1.2.4 available)
+  vector_graphics_compiler 1.3.1 (1.3.2 available)
+  vector_math 2.4.0 (2.4.3 available)
+  vm_service 15.3.0 (15.4.0 available)
++ wkt_parser 2.0.0
+  xml 7.0.1 (7.1.0 available)
++ yaml 3.1.4
+Changed 24 dependencies!
+27 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.

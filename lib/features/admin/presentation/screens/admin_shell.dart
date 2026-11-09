@@ -13,13 +13,26 @@ import '../../../shared/widgets/app_feedback.dart';
 
 /// ADMIN shell — drawer navigation instead of bottom tabs.
 ///
-/// Sections: Chauffeurs · Utilisateurs · Véhicules · Types de documents.
+/// Sections: Tableau de bord · Chauffeurs · Utilisateurs · Véhicules ·
+/// Types de documents · Contrats.
 class AdminShell extends ConsumerWidget {
   const AdminShell({super.key, required this.navigationShell});
+
+  /// Global key so nested admin screens (which own their Scaffold) can open
+  /// this shell's drawer from their AppBar menu button.
+  static final GlobalKey<ScaffoldState> scaffoldKey =
+      GlobalKey<ScaffoldState>();
 
   final StatefulNavigationShell navigationShell;
 
   static const _sections = [
+    (
+      Routes.adminHome,
+      Icons.space_dashboard_outlined,
+      Icons.space_dashboard_rounded,
+      'Tableau de bord',
+      'Vue d\u2019ensemble',
+    ),
     (
       Routes.adminDrivers,
       Icons.groups_outlined,
@@ -48,19 +61,36 @@ class AdminShell extends ConsumerWidget {
       'Types de documents',
       'Configuration',
     ),
+    (
+      Routes.adminContracts,
+      Icons.description_outlined,
+      Icons.description_rounded,
+      'Contrats',
+      'Création & activation',
+    ),
+    (
+      Routes.adminRides,
+      Icons.local_taxi_outlined,
+      Icons.local_taxi_rounded,
+      'Courses',
+      'Suivi & paiements',
+    ),
+    (
+      Routes.adminWallets,
+      Icons.account_balance_wallet_outlined,
+      Icons.account_balance_wallet_rounded,
+      'Portefeuilles',
+      'Commissions & versements',
+    ),
   ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-    final current = switch (navigationShell.currentIndex) {
-      0 => Routes.adminDrivers,
-      1 => Routes.adminUsers,
-      2 => Routes.adminVehicles,
-      _ => Routes.adminDocTypes,
-    };
+    final current = _sections[navigationShell.currentIndex.clamp(0, _sections.length - 1)].$1;
 
     return Scaffold(
+      key: AdminShell.scaffoldKey,
       drawer: Drawer(
         backgroundColor: AppColors.surface,
         shape: const RoundedRectangleBorder(),

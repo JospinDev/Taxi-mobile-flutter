@@ -9,6 +9,8 @@ import '../../../../app/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../auth/data/models/driver_profile_model.dart';
 import '../../../auth/providers/auth_controller.dart';
+import '../../../notifications/providers/notifications_providers.dart';
+import '../../../shared/widgets/app_motion.dart';
 import '../../../shared/widgets/app_avatar.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -26,6 +28,7 @@ class DriverProfileScreen extends ConsumerWidget {
     final auth = ref.watch(authControllerProvider);
     final user = auth.user;
     final profile = auth.driverProfile;
+    final unread = ref.watch(unreadCountProvider);
 
     if (user == null) return const Scaffold(body: LoadingView());
 
@@ -116,7 +119,36 @@ class DriverProfileScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-            ),
+            ).entrance(index: 0),
+            gapMd,
+
+            AppCard(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Column(
+                children: [
+                  MenuTile(
+                    icon: Icons.directions_car_rounded,
+                    title: 'Mes véhicules',
+                    subtitle: 'Documents & activation',
+                    onTap: () => context.push(Routes.driverVehicles),
+                  ),
+                  MenuTile(
+                    icon: Icons.description_rounded,
+                    title: 'Contrats & tarifs',
+                    subtitle: 'Commission et grille tarifaire',
+                    color: AppColors.info,
+                    onTap: () => context.push(Routes.driverPricing),
+                  ),
+                  MenuTile(
+                    icon: Icons.notifications_rounded,
+                    title: 'Notifications',
+                    color: AppColors.emeraldDeep,
+                    badge: unread,
+                    onTap: () => context.push(Routes.driverNotifications),
+                  ),
+                ],
+              ),
+            ).entrance(index: 1),
             gapMd,
 
             AppCard(
@@ -161,7 +193,7 @@ class DriverProfileScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-            ),
+            ).entrance(index: 2),
             gapMd,
 
             AppButton(

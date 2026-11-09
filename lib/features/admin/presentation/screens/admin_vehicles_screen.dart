@@ -9,9 +9,11 @@ import '../../../../app/theme/app_typography.dart';
 import '../../../driver/data/models/vehicle_model.dart';
 import '../../../driver/providers/vehicle_providers.dart';
 import '../../../shared/widgets/app_card.dart';
+import '../../../shared/widgets/app_motion.dart';
 import '../../../shared/widgets/app_states.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/status_chip.dart';
+import 'admin_shell.dart';
 
 class AdminVehiclesScreen extends ConsumerStatefulWidget {
   const AdminVehiclesScreen({super.key});
@@ -64,6 +66,11 @@ class _AdminVehiclesScreenState extends ConsumerState<AdminVehiclesScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Vehicules'),
+        leading: IconButton(
+          tooltip: 'Menu',
+          onPressed: () => AdminShell.scaffoldKey.currentState?.openDrawer(),
+          icon: const Icon(Icons.menu_rounded),
+        ),
         actions: [
           IconButton(
             tooltip: 'Actualiser',
@@ -154,7 +161,26 @@ class _AdminVehiclesScreenState extends ConsumerState<AdminVehiclesScreen> {
                     message: 'Aucun resultat pour ces filtres.',
                   );
                 }
-                return RefreshIndicator(
+                final active = items.where((v) => v.isActive).length;
+                final incomplete = items.where((v) => !v.requiredDocsValidated).length;
+                return Column(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.fromLTRB(24, 4, 24, 8),
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      decoration: BoxDecoration(gradient: AppColors.darkGradient, borderRadius: AppRadius.rLg),
+                      child: Row(children: [
+                        _vStat('${items.length}', 'Total', AppColors.info),
+                        Container(width: 1, height: 32, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 10)),
+                        _vStat('$active', 'Actifs', AppColors.emerald),
+                        Container(width: 1, height: 32, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 10)),
+                        _vStat('${items.length - active}', 'Inactifs', AppColors.muted),
+                        Container(width: 1, height: 32, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 10)),
+                        _vStat('$incomplete', 'Docs KO', AppColors.warning),
+                      ]),
+                    ),
+                    Expanded(
+                      child: RefreshIndicator(
                   onRefresh: () async => ref.invalidate(vehiclesProvider),
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
@@ -167,9 +193,12 @@ class _AdminVehiclesScreenState extends ConsumerState<AdminVehiclesScreen> {
                           .length;
                       final allDone = dv == v.documents.length &&
                           v.documents.isNotEmpty;
+                      final accentColor = !v.requiredDocsValidated ? AppColors.warning : v.isActive ? AppColors.emerald : AppColors.muted;
                       return AppCard(
+                        animate: false,
                         onTap: () =>
                             context.push(Routes.adminVehicleDetail(v.id)),
+                        border: Border(left: BorderSide(color: accentColor, width: 4)),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -246,9 +275,12 @@ class _AdminVehiclesScreenState extends ConsumerState<AdminVehiclesScreen> {
                             ),
                           ],
                         ),
-                      );
+                      ).entrance(index: i);
                     },
                   ),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -258,4 +290,12 @@ class _AdminVehiclesScreenState extends ConsumerState<AdminVehiclesScreen> {
     );
   }
 }
+
+Widget _vStat(String v, String l, Color c) => Expanded(
+  child: Column(mainAxisSize: MainAxisSize.min, children: [
+    Text(v, style: AppTypography.h3.copyWith(color: c, fontSize: 22)),
+    const SizedBox(height: 2),
+    Text(l, style: AppTypography.caption.copyWith(color: Colors.white60, fontSize: 11)),
+  ]),
+);
 

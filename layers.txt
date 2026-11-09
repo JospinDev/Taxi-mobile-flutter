@@ -1,0 +1,11 @@
+At line:1 char:552
++ ... orEach-Object { \$_.Filename + ' ' + \$_.LineNumber.ToString() + ': ' ...
++                                                                  ~
+An expression was expected after '('.
+At line:1 char:577
++ ... Filename + ' ' + \$_.LineNumber.ToString() + ': ' + \$_.Line.Trim() }
++                                                                       ~
+An expression was expected after '('.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : ExpectedExpression
+ 

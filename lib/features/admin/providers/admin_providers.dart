@@ -176,3 +176,16 @@ final adminUsersProvider =
 final adminUserDetailProvider = FutureProvider.autoDispose.family<AppUser, int>(
   (ref, id) => ref.watch(adminAccountsRepositoryProvider).getUser(id),
 );
+
+/// ── Admin · dashboard ───────────────────────────────────────────────────────
+
+/// Latest drivers awaiting approval — surfaced on the portal home.
+final pendingDriversProvider = FutureProvider.autoDispose<List<DriverProfile>>((
+  ref,
+) async {
+  final res = await ref.watch(adminAccountsRepositoryProvider).listDrivers(
+    filters: const {'is_approved': false, 'ordering': '-created_at'},
+    pageSize: 5,
+  );
+  return res.results;
+});

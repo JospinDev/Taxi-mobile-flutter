@@ -11,6 +11,7 @@ class TokenStorage {
   static const _kAccess = 'auth.access';
   static const _kRefresh = 'auth.refresh';
   static const _kRole = 'auth.role';
+  static const _kOnboarding = 'app.onboarding_done';
 
   final SharedPreferences _prefs;
 
@@ -22,6 +23,12 @@ class TokenStorage {
   String? get role => _prefs.getString(_kRole);
 
   bool get hasSession => refresh?.isNotEmpty ?? false;
+
+  /// Whether the "why use the app" onboarding was completed or skipped.
+  /// Kept on logout: it is shown only on the very first launch.
+  bool get onboardingDone => _prefs.getBool(_kOnboarding) ?? false;
+
+  Future<void> setOnboardingDone() => _prefs.setBool(_kOnboarding, true);
 
   Future<void> save({
     required String access,

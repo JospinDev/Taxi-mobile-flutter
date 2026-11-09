@@ -9,6 +9,8 @@ import '../../../../app/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../auth/providers/auth_controller.dart';
+import '../../../notifications/providers/notifications_providers.dart';
+import '../../../shared/widgets/app_motion.dart';
 import '../../../shared/widgets/app_avatar.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -24,6 +26,7 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
+    final unread = ref.watch(unreadCountProvider);
     if (user == null) return const Scaffold(body: LoadingView());
 
     return Scaffold(
@@ -81,7 +84,36 @@ class ProfileScreen extends ConsumerWidget {
                 ],
               ],
             ),
-          ),
+          ).entrance(index: 0),
+          gapMd,
+
+          AppCard(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Column(
+              children: [
+                MenuTile(
+                  icon: Icons.receipt_long_rounded,
+                  title: 'Mes courses',
+                  subtitle: 'Historique et factures',
+                  onTap: () => context.go(Routes.clientHistory),
+                ),
+                MenuTile(
+                  icon: Icons.sell_rounded,
+                  title: 'Tarifs',
+                  subtitle: 'Grille tarifaire en vigueur',
+                  color: AppColors.info,
+                  onTap: () => context.go(Routes.clientPricing),
+                ),
+                MenuTile(
+                  icon: Icons.notifications_rounded,
+                  title: 'Notifications',
+                  color: AppColors.emeraldDeep,
+                  badge: unread,
+                  onTap: () => context.push(Routes.clientNotifications),
+                ),
+              ],
+            ),
+          ).entrance(index: 1),
           gapMd,
 
           // ── Account details ─────────────────────────────────────────
@@ -124,7 +156,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
+          ).entrance(index: 2),
           gapMd,
 
           AppButton(

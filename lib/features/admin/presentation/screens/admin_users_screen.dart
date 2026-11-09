@@ -10,10 +10,12 @@ import '../../../../core/utils/formatters.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../shared/widgets/app_avatar.dart';
 import '../../../shared/widgets/app_card.dart';
+import '../../../shared/widgets/app_motion.dart';
 import '../../../shared/widgets/app_states.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/status_chip.dart';
 import '../../providers/admin_providers.dart';
+import 'admin_shell.dart';
 
 class AdminUsersScreen extends ConsumerStatefulWidget {
   const AdminUsersScreen({super.key});
@@ -66,6 +68,11 @@ class _S extends ConsumerState<AdminUsersScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Utilisateurs'),
+        leading: IconButton(
+          tooltip: 'Menu',
+          onPressed: () => AdminShell.scaffoldKey.currentState?.openDrawer(),
+          icon: const Icon(Icons.menu_rounded),
+        ),
         actions: [
           IconButton(
             tooltip: 'Actualiser',
@@ -133,6 +140,9 @@ class _S extends ConsumerState<AdminUsersScreen> {
                 onRetry: () => ref.invalidate(adminUsersProvider),
               ),
               data: (items) {
+                final clients = items.where((u) => u.role == UserRole.client).length;
+                final drivers = items.where((u) => u.role == UserRole.driver).length;
+                final active = items.where((u) => u.isActive).length;
                 if (items.isEmpty) {
                   return const EmptyView(
                     icon: Icons.manage_accounts_outlined,
@@ -140,7 +150,11 @@ class _S extends ConsumerState<AdminUsersScreen> {
                     message: 'Aucun resultat pour ces filtres.',
                   );
                 }
-                return RefreshIndicator(
+                return Column(
+                  children: [
+                    _UsersStatsBar(total: items.length, clients: clients, drivers: drivers, active: active),
+                    Expanded(
+                      child: RefreshIndicator(
                   onRefresh: () async => ref.invalidate(adminUsersProvider),
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
@@ -157,8 +171,13 @@ class _S extends ConsumerState<AdminUsersScreen> {
                         );
                       }
                       final u = items[i];
+                      final roleColor = u.role == UserRole.client ? AppColors.info
+                          : u.role == UserRole.driver ? AppColors.brand
+                          : AppColors.muted;
                       return AppCard(
+                        animate: false,
                         onTap: () => context.push(Routes.adminUserDetail(u.id)),
+                        border: Border(left: BorderSide(color: roleColor, width: 4)),
                         child: Row(
                           children: [
                             AppAvatar(
@@ -206,12 +225,8 @@ class _S extends ConsumerState<AdminUsersScreen> {
                                       ),
                                       const SizedBox(width: 6),
                                       StatusChip(
-                                        label: u.isActive
-                                            ? 'ACTIF'
-                                            : 'DESACTIVE',
-                                        tone: u.isActive
-                                            ? AppTone.success
-                                            : AppTone.danger,
+                                        label: u.isActive ? 'ACTIF' : 'DESACTIVÉ',
+                                        tone: u.isActive ? AppTone.success : AppTone.danger,
                                         small: true,
                                       ),
                                     ],
@@ -219,15 +234,15 @@ class _S extends ConsumerState<AdminUsersScreen> {
                                 ],
                               ),
                             ),
-                            const Icon(
-                              Icons.chevron_right_rounded,
-                              color: AppColors.faint,
-                            ),
+                            const Icon(Icons.chevron_right_rounded, color: AppColors.faint),
                           ],
                         ),
-                      );
+                      ).entrance(index: i);
                     },
                   ),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -236,4 +251,37 @@ class _S extends ConsumerState<AdminUsersScreen> {
       ),
     );
   }
+}
+
+class _UsersStatsBar extends StatelessWidget {
+  const _UsersStatsBar({required this.total, required this.clients, required this.drivers, required this.active});
+  final int total, clients, drivers, active;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.fromLTRB(24, 4, 24, 8),
+    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+    decoration: BoxDecoration(gradient: AppColors.darkGradient, borderRadius: AppRadius.rLg),
+    child: Row(
+      children: [
+        _stat('$total', 'Total', AppColors.info),
+        _div(),
+        _stat('$clients', 'Clients', AppColors.emerald),
+        _div(),
+        _stat('$drivers', 'Chauffeurs', AppColors.brand),
+        _div(),
+        _stat('$active', 'Actifs', AppColors.warning),
+      ],
+    ),
+  );
+
+  Widget _div() => Container(width: 1, height: 32, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 10));
+
+  Widget _stat(String v, String l, Color c) => Expanded(
+    child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Text(v, style: AppTypography.h3.copyWith(color: c, fontSize: 22)),
+      const SizedBox(height: 2),
+      Text(l, style: AppTypography.caption.copyWith(color: Colors.white60, fontSize: 11)),
+    ]),
+  );
 }

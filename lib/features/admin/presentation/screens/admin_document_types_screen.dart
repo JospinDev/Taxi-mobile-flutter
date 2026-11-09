@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_space.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../shared/widgets/app_motion.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/app_feedback.dart';
@@ -12,6 +13,7 @@ import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/status_chip.dart';
 import '../../../driver/data/models/document_type_model.dart';
 import '../../../driver/providers/vehicle_providers.dart';
+import 'admin_shell.dart';
 
 class AdminDocumentTypesScreen extends ConsumerStatefulWidget {
   const AdminDocumentTypesScreen({super.key});
@@ -77,7 +79,14 @@ class _S extends ConsumerState<AdminDocumentTypesScreen> {
     final ts = ref.watch(documentTypesProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Types de documents')),
+      appBar: AppBar(
+        title: const Text('Types de documents'),
+        leading: IconButton(
+          tooltip: 'Menu',
+          onPressed: () => AdminShell.scaffoldKey.currentState?.openDrawer(),
+          icon: const Icon(Icons.menu_rounded),
+        ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _save(),
         backgroundColor: AppColors.brand,
@@ -149,12 +158,25 @@ class _S extends ConsumerState<AdminDocumentTypesScreen> {
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (c, i) {
                       final t = items[i];
+                      final iconColors = [AppColors.info, AppColors.brand, AppColors.emerald, AppColors.warning, AppColors.danger];
+                      final iconColor = iconColors[t.order % iconColors.length];
                       return AppCard(
+                        animate: false,
+                        border: Border(left: BorderSide(color: t.isActive ? iconColor : AppColors.line, width: 4)),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
+                                Container(
+                                  margin: const EdgeInsets.only(right: 12),
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: iconColor.withValues(alpha: .12),
+                                    borderRadius: AppRadius.rMd,
+                                  ),
+                                  child: Icon(Icons.description_rounded, size: 20, color: iconColor),
+                                ),
                                 Expanded(
                                   child: Text(
                                     t.label,
@@ -243,7 +265,7 @@ class _S extends ConsumerState<AdminDocumentTypesScreen> {
                             ),
                           ],
                         ),
-                      );
+                      ).entrance(index: i);
                     },
                   ),
                 );

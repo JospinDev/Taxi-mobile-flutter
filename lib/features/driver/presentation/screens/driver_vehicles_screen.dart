@@ -45,7 +45,7 @@ class DriverVehiclesScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Mes véhicules'),
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: true,
         toolbarHeight: 72,
         titleSpacing: AppSpace.xl,
         actions: [

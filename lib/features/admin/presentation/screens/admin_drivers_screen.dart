@@ -11,10 +11,12 @@ import '../../../auth/data/models/driver_profile_model.dart';
 import '../../../shared/widgets/app_avatar.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/app_feedback.dart';
+import '../../../shared/widgets/app_motion.dart';
 import '../../../shared/widgets/app_states.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/status_chip.dart';
 import '../../providers/admin_providers.dart';
+import 'admin_shell.dart';
 
 /// ADMIN — drivers list (GET /accounts/drivers/) with approve/suspend.
 class AdminDriversScreen extends ConsumerStatefulWidget {
@@ -135,6 +137,11 @@ class _AdminDriversScreenState extends ConsumerState<AdminDriversScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Chauffeurs'),
+        leading: IconButton(
+          tooltip: 'Menu',
+          onPressed: () => AdminShell.scaffoldKey.currentState?.openDrawer(),
+          icon: const Icon(Icons.menu_rounded),
+        ),
         actions: [
           IconButton(
             tooltip: 'Actualiser',
@@ -226,6 +233,9 @@ class _AdminDriversScreenState extends ConsumerState<AdminDriversScreen> {
                 onRetry: () => ref.invalidate(adminDriversProvider),
               ),
               data: (items) {
+                final approved = items.where((d) => d.isApproved).length;
+                final online = items.where((d) => d.status.raw == 'available').length;
+                final pending = items.where((d) => !d.isApproved).length;
                 if (items.isEmpty) {
                   return const EmptyView(
                     icon: Icons.groups_outlined,
@@ -233,7 +243,16 @@ class _AdminDriversScreenState extends ConsumerState<AdminDriversScreen> {
                     message: 'Aucun résultat pour ces filtres.',
                   );
                 }
-                return RefreshIndicator(
+                return Column(
+                  children: [
+                    _AdminStatsBar(stats: [
+                      (value: '${items.length}', label: 'Total', color: AppColors.info),
+                      (value: '$approved', label: 'Approuvés', color: AppColors.emerald),
+                      (value: '$online', label: 'En ligne', color: AppColors.brand),
+                      (value: '$pending', label: 'En attente', color: AppColors.warning),
+                    ]),
+                    Expanded(
+                      child: RefreshIndicator(
                   onRefresh: () async => ref.invalidate(adminDriversProvider),
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(
@@ -250,8 +269,11 @@ class _AdminDriversScreenState extends ConsumerState<AdminDriversScreen> {
                           context.push(Routes.adminDriverDetail(items[i].id)),
                       onApprove: () => _approve(items[i]),
                       onSuspend: () => _suspend(items[i]),
-                    ),
+                    ).entrance(index: i),
                   ),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -260,6 +282,38 @@ class _AdminDriversScreenState extends ConsumerState<AdminDriversScreen> {
       ),
     );
   }
+}
+
+// ── Shared admin stats bar ────────────────────────────────────────────────────
+
+class _AdminStatsBar extends StatelessWidget {
+  const _AdminStatsBar({required this.stats});
+  final List<({String value, String label, Color color})> stats;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.fromLTRB(AppSpace.xl, AppSpace.xs, AppSpace.xl, AppSpace.sm),
+    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: AppSpace.md),
+    decoration: BoxDecoration(gradient: AppColors.darkGradient, borderRadius: AppRadius.rLg),
+    child: Row(
+      children: [
+        for (int i = 0; i < stats.length; i++) ...[
+          if (i > 0)
+            Container(width: 1, height: 32, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: AppSpace.sm)),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(stats[i].value, style: AppTypography.h3.copyWith(color: stats[i].color, fontSize: 22)),
+                const SizedBox(height: 2),
+                Text(stats[i].label, style: AppTypography.caption.copyWith(color: Colors.white60, fontSize: 11)),
+              ],
+            ),
+          ),
+        ],
+      ],
+    ),
+  );
 }
 
 /// Driver row card: avatar, name, status chips, quick approve/suspend.
@@ -280,10 +334,17 @@ class _DriverCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = driver;
     final pending = !d.isApproved;
+    final accentColor = pending
+        ? AppColors.warning
+        : d.status.raw == 'available'
+            ? AppColors.emerald
+            : AppColors.muted;
 
     return AppCard(
       onTap: onTap,
+      animate: false,
       padding: const EdgeInsets.all(14),
+      border: Border(left: BorderSide(color: accentColor, width: 4)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

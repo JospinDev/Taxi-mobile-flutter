@@ -38,4 +38,53 @@ class ApiPaths {
 
   static const documentTypes = 'vehicles/document-types/';
   static String documentTypeById(int id) => 'vehicles/document-types/$id/';
+
+  // ────────────────────────── MODULE 3 — CONTRACTS ────────────────────────────
+  static const contracts = 'contracts/';
+  static String contractById(int id) => 'contracts/$id/';
+  static String contractSign(int id) => 'contracts/$id/sign/';
+  static String contractActivate(int id) => 'contracts/$id/activate/';
+  static String contractDeactivate(int id) => 'contracts/$id/deactivate/';
+
+  // ─────────────────────────── MODULE 4 — PRICING ─────────────────────────────
+  static const pricingRules = 'pricing/rules/';
+  static const pricingRuleActive = 'pricing/rules/active/';
+  static String pricingRuleById(int id) => 'pricing/rules/$id/';
+  static String pricingRuleActivate(int id) => 'pricing/rules/$id/activate/';
+  static String pricingRuleDeactivate(int id) => 'pricing/rules/$id/deactivate/';
+
+  // ─────────────────────── MODULE 5/6 — RIDES & TRACKING ─────────────────────
+  static const rides = 'rides/';
+  static const rideEstimate = 'rides/estimate/';
+  static const rideCurrent = 'rides/current/';
+  static const rideOffers = 'rides/offers/';
+  static const rideNearbyDrivers = 'rides/nearby-drivers/';
+  static String rideById(int id) => 'rides/$id/';
+  static String rideAccept(int id) => 'rides/$id/accept/';
+  static String rideReject(int id) => 'rides/$id/reject/';
+  static String rideCancel(int id) => 'rides/$id/cancel/';
+  static String rideArrived(int id) => 'rides/$id/arrived/';
+  static String rideStart(int id) => 'rides/$id/start/';
+  static String rideTrack(int id) => 'rides/$id/track/';
+  static String rideRoute(int id) => 'rides/$id/route/';
+  static String rideComplete(int id) => 'rides/$id/complete/';
+  static String rideRate(int id) => 'rides/$id/rate/';
+  static String rideConfirmPayment(int id) => 'rides/$id/confirm-payment/';
+
+  // ─────────────────────── MODULE 7 — PAYMENTS & WALLET ───────────────────────
+  static const wallets = 'payments/wallets/';
+  static const myWallet = 'payments/wallets/me/';
+  static String walletPayout(int id) => 'payments/wallets/$id/payout/';
+  static String walletAdjust(int id) => 'payments/wallets/$id/adjust/';
+  static const walletTransactions = 'payments/transactions/';
+
+  // ──────────────────────── MODULE 8 — NOTIFICATIONS ──────────────────────────
+  static const notifications = 'notifications/';
+  static const notificationsUnread = 'notifications/unread-count/';
+  static const notificationsReadAll = 'notifications/read-all/';
+  static String notificationRead(int id) => 'notifications/$id/read/';
+
+  // ───────────────────────────── WEBSOCKETS ───────────────────────────────────
+  static const wsNotifications = 'ws/notifications/';
+  static String wsRide(int id) => 'ws/rides/$id/';
 }

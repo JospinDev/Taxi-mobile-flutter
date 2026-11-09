@@ -1,0 +1,5 @@
+148:   /// `userAgentPackageName` is a [TileLayer] parameter, which should be passed
+150:   /// https://docs.fleaflet.dev/layers/tile-layer#useragentpackagename for
+264:     String userAgentPackageName = 'unknown',
+284:           'User-Agent', () => 'flutter_map ($userAgentPackageName)');
+351:     \x1B[0;33mthe `TileLayer.userAgentPackageName` argument. This may lead to your project

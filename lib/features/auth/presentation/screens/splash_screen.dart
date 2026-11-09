@@ -5,6 +5,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_space.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../../features/auth/providers/auth_controller.dart';
+import '../../../shared/widgets/app_motion.dart';
 
 /// Launch screen: brand animation + session restore.
 ///
@@ -62,28 +63,32 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             children: [
               ScaleTransition(
                 scale: _logoScale,
-                child: Container(
-                  width: 96,
-                  height: 96,
-                  decoration: BoxDecoration(
-                    gradient: AppColors.brandGradient,
-                    borderRadius: AppRadius.rXxl,
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x66E8A400),
-                        blurRadius: 40,
-                        spreadRadius: -6,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.local_taxi_rounded,
-                    size: 52,
-                    color: AppColors.ink,
+                child: PulseRings(
+                  color: AppColors.brand,
+                  size: 200,
+                  child: Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.brandGradient,
+                      borderRadius: AppRadius.rXxl,
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x66E8A400),
+                          blurRadius: 40,
+                          spreadRadius: -6,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.local_taxi_rounded,
+                      size: 52,
+                      color: AppColors.ink,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: AppSpace.xl),
+              const SizedBox(height: AppSpace.sm),
               FadeTransition(
                 opacity: _fade,
                 child: Column(

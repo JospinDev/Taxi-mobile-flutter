@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 
 import 'app_colors.dart';
 import 'app_space.dart';
@@ -182,11 +181,47 @@ class AppTheme {
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.android: SmoothPageTransitionsBuilder(),
+          TargetPlatform.iOS: SmoothPageTransitionsBuilder(),
+          TargetPlatform.windows: SmoothPageTransitionsBuilder(),
+          TargetPlatform.macOS: SmoothPageTransitionsBuilder(),
+          TargetPlatform.linux: SmoothPageTransitionsBuilder(),
         },
+      ),
+    );
+  }
+}
+
+/// Page transition: incoming page fades in while sliding up 6 %, outgoing
+/// page gently scales back — modern, calm and identical on every platform.
+class SmoothPageTransitionsBuilder extends PageTransitionsBuilder {
+  const SmoothPageTransitionsBuilder();
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 340);
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final enter = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    final exit = CurvedAnimation(parent: secondaryAnimation, curve: Curves.easeOutCubic);
+    return FadeTransition(
+      opacity: enter,
+      child: SlideTransition(
+        position: Tween(begin: const Offset(0, .06), end: Offset.zero).animate(enter),
+        child: ScaleTransition(
+          scale: Tween(begin: 1.0, end: .96).animate(exit),
+          child: child,
+        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_space.dart';
@@ -108,7 +109,7 @@ class ErrorView extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, size: 34, color: AppColors.danger),
-            ),
+            ).animate().shake(hz: 4, duration: 500.ms),
             const SizedBox(height: AppSpace.md),
             Text(title, textAlign: TextAlign.center, style: AppTypography.h3),
             if (message != null) ...[
@@ -164,7 +165,12 @@ class EmptyView extends StatelessWidget {
                 borderRadius: AppRadius.rXl,
               ),
               child: Icon(icon, size: 36, color: AppColors.brandDeep),
-            ),
+            )
+                .animate()
+                .scale(begin: const Offset(.7, .7), curve: Curves.elasticOut, duration: 800.ms)
+                .then()
+                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .moveY(begin: 0, end: -5, duration: 1600.ms, curve: Curves.easeInOut),
             const SizedBox(height: AppSpace.md),
             Text(title, textAlign: TextAlign.center, style: AppTypography.h3),
             if (message != null) ...[

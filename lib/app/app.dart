@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../features/notifications/presentation/widgets/in_app_notification_host.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
@@ -27,7 +28,8 @@ class TaxiDrivingApp extends ConsumerWidget {
             // Predictable typography across devices (Android font scaling).
             data: MediaQuery.of(context)
                 .copyWith(textScaler: const TextScaler.linear(1)),
-            child: child ?? const SizedBox.shrink(),
+            // In-app popups float above every screen.
+            child: InAppNotificationHost(child: child ?? const SizedBox.shrink()),
           ),
         );
       },
