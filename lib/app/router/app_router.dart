@@ -42,6 +42,7 @@ import '../../features/payments/presentation/screens/wallet_screen.dart';
 import '../../features/pricing/presentation/screens/client_pricing_screen.dart';
 import '../../features/rides/presentation/screens/client_ride_screen.dart';
 import '../../features/rides/presentation/screens/driver_ride_screen.dart';
+import '../../features/rides/presentation/screens/ride_chat_screen.dart';
 import '../../features/rides/presentation/screens/ride_detail_screen.dart';
 import '../../features/rides/presentation/screens/ride_history_screen.dart';
 
@@ -62,6 +63,9 @@ abstract final class Routes {
   static const clientNotifications = '/client/notifications';
   static String clientRideDetail(int id) => '/client/ride-detail/$id';
   static const editProfile = '/edit-profile';
+
+  /// Chat of the active ride — shared by the client and the driver.
+  static const rideChat = '/ride/chat';
 
   // Driver
   static const driverHome = '/driver/dashboard';
@@ -163,6 +167,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.registerClient, builder: (_, _) => const RegisterClientScreen()),
       GoRoute(path: Routes.registerDriver, builder: (_, _) => const RegisterDriverScreen()),
       GoRoute(path: Routes.editProfile, builder: (_, _) => const EditProfileScreen()),
+      GoRoute(path: Routes.rideChat, builder: (_, _) => const RideChatScreen()),
 
       // ─────────────────────────── Client ───────────────────────────
       GoRoute(path: Routes.clientRide, builder: (_, _) => const ClientRideScreen()),

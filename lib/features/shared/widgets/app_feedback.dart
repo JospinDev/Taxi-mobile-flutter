@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -71,8 +72,14 @@ class AppToast {
 
   /// Maps any thrown object to a friendly message.
   static void apiError(BuildContext context, Object error) {
+    // Always log the cause: an unexpected Dart error (a null check, a bad cast)
+    // used to reach the user as a bare "une erreur est survenue", which hid
+    // what actually failed and whether the request was even sent.
+    debugPrint('[AppToast.apiError] $error');
     final message = error is ApiException
         ? error.message
+        : kDebugMode
+        ? '$error'
         : 'Une erreur est survenue. Veuillez réessayer.';
     _show(
       context,

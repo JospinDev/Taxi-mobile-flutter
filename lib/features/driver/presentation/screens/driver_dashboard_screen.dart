@@ -10,7 +10,6 @@ import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_space.dart';
 import '../../../../app/theme/app_typography.dart';
-import '../../../../core/config/app_config.dart';
 import '../../../../core/models/geo_point.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../auth/data/models/driver_profile_model.dart';
@@ -40,7 +39,6 @@ class DriverDashboardScreen extends ConsumerStatefulWidget {
 
 class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
   final _map = AppMapController();
-  Timer? _gpsTimer;
   bool _toggling = false;
   bool _locationDenied = false;
   GeoPoint? _position;
@@ -51,19 +49,12 @@ class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(authControllerProvider.notifier).refreshDriverProfile();
-      _syncGpsLoop();
       final p = await ref.read(deviceLocationProvider.future);
       if (p != null && mounted) {
         setState(() => _position = p);
         _map.moveTo(p, zoom: 16);
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _gpsTimer?.cancel();
-    super.dispose();
   }
 
   bool get _online => ref.read(currentDriverProfileProvider)?.status == DriverStatus.available;
@@ -87,40 +78,31 @@ class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
           icon: Icons.location_off_rounded,
         );
         if (retry) return _toggleOnline();
+      } else {
+        // Read the position BEFORE flipping the status: it travels with the
+        // status call so dispatch can find us on the very first wave.
+        final p = await ref.read(locationServiceProvider).currentPosition();
+        if (!mounted) return;
+        if (p != null) setState(() => _position = p);
       }
     }
 
     setState(() => _toggling = true);
     try {
-      final status = await ref.read(authRepositoryProvider).updateStatus(goingOnline ? 'available' : 'offline');
+      final pos = goingOnline ? _position : null;
+      final status = await ref.read(authRepositoryProvider).updateStatus(
+        goingOnline ? 'available' : 'offline',
+        lat: pos?.lat,
+        lng: pos?.lng,
+      );
       await ref.read(authControllerProvider.notifier).refreshDriverProfile();
       if (!mounted) return;
       AppToast.success(context, status == 'available' ? 'Vous êtes en ligne 🟢 Les courses arrivent ici.' : 'Vous êtes hors ligne.');
-      _syncGpsLoop();
     } catch (e) {
       if (mounted) AppToast.apiError(context, e);
     } finally {
       if (mounted) setState(() => _toggling = false);
     }
-  }
-
-  void _syncGpsLoop() {
-    _gpsTimer?.cancel();
-    _gpsTimer = null;
-    if (!_online) return;
-    _pushLocation();
-    _gpsTimer = Timer.periodic(AppConfig.locationPushInterval, (_) => _pushLocation());
-  }
-
-  Future<void> _pushLocation() async {
-    // During a ride the tracker already sends positions.
-    if (ref.read(currentRideProvider).value?.status.hasDriver ?? false) return;
-    final p = await ref.read(locationServiceProvider).currentPosition();
-    if (p == null) return;
-    if (mounted) setState(() => _position = p);
-    try {
-      await ref.read(authRepositoryProvider).updateLocation(lat: p.lat, lng: p.lng);
-    } catch (_) {}
   }
 
   Future<void> _accept(RideOffer offer) async {
@@ -150,9 +132,10 @@ class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
     final top = MediaQuery.of(context).padding.top;
     final offer = offers.isEmpty ? null : offers.first;
 
-    ref.listen(currentDriverProfileProvider, (prev, next) {
-      if (prev?.status != next?.status) _syncGpsLoop();
-    });
+    // Keeps the GPS beacon alive for as long as the driver is online, including
+    // while they are on another screen.
+    ref.watch(driverLocationBeaconProvider);
+
     ref.listen(driverOffersProvider, (prev, next) {
       if (next.length > (prev?.length ?? 0)) {
         HapticFeedback.heavyImpact();

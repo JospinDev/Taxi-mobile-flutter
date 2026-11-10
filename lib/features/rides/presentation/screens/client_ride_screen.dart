@@ -372,7 +372,16 @@ class _DriverPanel extends StatelessWidget {
             PartyHeader(
               party: driver,
               vehicle: ride.vehicle,
-              trailing: driver.phone == null ? null : PhoneButton(phone: driver.phone!),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const ChatButton(),
+                  if (driver.phone != null) ...[
+                    const SizedBox(width: AppSpace.xxs),
+                    PhoneButton(phone: driver.phone!),
+                  ],
+                ],
+              ),
             ),
           if (ride.vehicle != null) ...[
             const SizedBox(height: AppSpace.sm),

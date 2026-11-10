@@ -293,7 +293,16 @@ class _StepPanel extends StatelessWidget {
               party: ride.client!,
               dark: true,
               subtitle: ride.paymentMethod.label,
-              trailing: ride.client!.phone == null ? null : PhoneButton(phone: ride.client!.phone!, dark: true),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const ChatButton(dark: true),
+                  if (ride.client!.phone != null) ...[
+                    const SizedBox(width: AppSpace.xxs),
+                    PhoneButton(phone: ride.client!.phone!, dark: true),
+                  ],
+                ],
+              ),
             ),
           const SizedBox(height: AppSpace.sm),
           RouteSummary(from: ride.pickupLabel, to: ride.dropoffLabel, dark: true),

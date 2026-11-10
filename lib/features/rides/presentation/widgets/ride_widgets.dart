@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_space.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../shared/widgets/app_motion.dart';
 import '../../data/models/ride_model.dart';
+import '../../providers/rides_providers.dart';
 
 /// Coloured status pill with icon.
 class RideStatusChip extends StatelessWidget {
@@ -254,6 +258,43 @@ class PhoneButton extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Numéro copié : $phone')));
       },
       icon: const Icon(Icons.call_rounded),
+    );
+  }
+}
+
+/// Opens the ride chat, with a live badge for unread messages.
+class ChatButton extends ConsumerWidget {
+  const ChatButton({super.key, this.dark = false});
+
+  final bool dark;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(rideChatUnreadProvider);
+    final icon = Icon(
+      unread > 0 ? Icons.mark_unread_chat_alt_rounded : Icons.chat_bubble_outline_rounded,
+    );
+    return IconButton.filledTonal(
+      tooltip: 'Discuter',
+      style: IconButton.styleFrom(
+        backgroundColor: dark ? Colors.white12 : AppColors.infoSoft,
+        foregroundColor: AppColors.info,
+      ),
+      onPressed: () {
+        HapticFeedback.selectionClick();
+        context.push(Routes.rideChat);
+      },
+      icon: Badge(
+        isLabelVisible: unread > 0,
+        backgroundColor: AppColors.danger,
+        offset: const Offset(7, -7),
+        label: Text(unread > 9 ? '9+' : '$unread'),
+        child: unread > 0
+            ? icon
+                  .animate(key: ValueKey(unread), onPlay: (c) => c.forward())
+                  .shake(hz: 5, rotation: .1, duration: 500.ms)
+            : icon,
+      ),
     );
   }
 }

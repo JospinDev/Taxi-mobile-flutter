@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/constants/api_paths.dart';
 import '../../../core/models/geo_point.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/realtime/realtime_client.dart';
 import '../../../core/services/location_service.dart';
 import '../../auth/data/models/driver_profile_model.dart';
@@ -14,6 +15,7 @@ import '../../auth/data/models/user_model.dart';
 import '../../auth/providers/auth_controller.dart';
 import '../../shared/providers/realtime_providers.dart';
 import '../../shared/providers/repository_providers.dart';
+import '../data/models/ride_message_model.dart';
 import '../data/models/ride_model.dart';
 import '../data/rides_repository.dart';
 
@@ -136,6 +138,8 @@ class CurrentRideNotifier extends AsyncNotifier<Ride?> {
     );
     _rideSocket = socket;
     _rideSub = socket.events.listen((e) {
+      // Re-broadcast so the chat can share this one connection.
+      ref.read(rideEventsProvider).add(e);
       final current = state.value;
       if (current == null || current.id != rideId) return;
       if (e.event == 'ride.location') {
@@ -230,12 +234,31 @@ class CurrentRideNotifier extends AsyncNotifier<Ride?> {
 
   void adopt(Ride ride) => _set(ride);
 
-  Future<void> markArrived() async => _set(await _rides.arrived(state.value!.id));
+  /// The ride a driver action applies to.
+  ///
+  /// Waits for an in-flight build and re-reads the server if needed: tapping
+  /// while this provider is still loading (app just resumed) used to hit a
+  /// null and surface as an unexplained error instead of sending the request.
+  Future<Ride> _requireRide() async {
+    final loaded = state.value ?? await future;
+    if (loaded != null) return loaded;
+    final fetched = await _rides.current();
+    if (fetched == null) {
+      throw const ApiException(
+        message: "Aucune course active n'a été trouvée. Rouvrez l'écran de la course.",
+      );
+    }
+    _set(fetched);
+    return fetched;
+  }
 
-  Future<void> start() async => _set(await _rides.start(state.value!.id));
+  Future<void> markArrived() async =>
+      _set(await _rides.arrived((await _requireRide()).id));
+
+  Future<void> start() async => _set(await _rides.start((await _requireRide()).id));
 
   Future<void> complete() async {
-    final id = state.value!.id;
+    final id = (await _requireRide()).id;
     await ref.read(driverTrackerProvider).flush();
     _set(await _rides.complete(id));
   }
@@ -247,6 +270,203 @@ class CurrentRideNotifier extends AsyncNotifier<Ride?> {
 final currentRideProvider = AsyncNotifierProvider<CurrentRideNotifier, Ride?>(
   CurrentRideNotifier.new,
 );
+
+// ────────────────────────────────── ride chat ────────────────────────────────
+
+/// Events coming off the per-ride WebSocket owned by [CurrentRideNotifier],
+/// re-broadcast so the chat listens to the same connection instead of opening
+/// a second one.
+final rideEventsProvider = Provider<StreamController<RealtimeEvent>>((ref) {
+  final controller = StreamController<RealtimeEvent>.broadcast();
+  ref.onDispose(controller.close);
+  return controller;
+});
+
+/// Thread for the active ride, oldest message last.
+///
+/// The chat opens when a driver is assigned and goes read-only once the ride
+/// ends. Live via `ride.message`, with a slow poll as a safety net because the
+/// socket can drop.
+class RideChatNotifier extends AsyncNotifier<List<RideMessage>> {
+  Timer? _poll;
+  int? _rideId;
+
+  @override
+  Future<List<RideMessage>> build() async {
+    final ride = ref.watch(
+      currentRideProvider.select((s) => s.value),
+    );
+    final rideId = ride != null && ride.status.hasDriver ? ride.id : null;
+    _rideId = rideId;
+
+    _poll?.cancel();
+    _poll = null;
+    ref.onDispose(() => _poll?.cancel());
+    if (rideId == null) return const [];
+
+    final me = ref.read(currentUserProvider)?.id;
+    final sub = ref.watch(rideEventsProvider).stream.listen((e) {
+      if (e.rideId != null && e.rideId != rideId) return;
+      if (e.event == 'ride.message') {
+        _upsert(RideMessage.fromJson(e.data, currentUserId: me));
+      } else if (e.event == 'ride.message_read') {
+        _applyReadReceipt(e.data);
+      }
+    });
+    ref.onDispose(sub.cancel);
+
+    _poll = Timer.periodic(const Duration(seconds: 6), (_) => _sync());
+    return ref.read(ridesRepositoryProvider).messages(rideId);
+  }
+
+  bool get canSend {
+    final ride = ref.read(currentRideProvider).value;
+    return _rideId != null && (ride?.status.hasDriver ?? false) && !(ride?.status.isFinished ?? true);
+  }
+
+  Future<void> _sync() async {
+    final rideId = _rideId;
+    if (rideId == null) return;
+    try {
+      final fresh = await ref.read(ridesRepositoryProvider).messages(rideId);
+      // Keep local echoes that the server has not acknowledged yet.
+      final pending = (state.value ?? const <RideMessage>[]).where((m) => m.pending || m.failed);
+      state = AsyncData(_sorted([...fresh, ...pending]));
+    } catch (_) {}
+  }
+
+  void _upsert(RideMessage message) {
+    final list = [...(state.value ?? const <RideMessage>[])];
+    final at = list.indexWhere((m) => m.id == message.id);
+    if (at >= 0) {
+      list[at] = message;
+    } else {
+      // Drop the optimistic echo this message confirms.
+      list.removeWhere((m) => m.pending && m.isMine && m.body == message.body);
+      list.add(message);
+    }
+    state = AsyncData(_sorted(list));
+  }
+
+  void _applyReadReceipt(Map<String, dynamic> data) {
+    final readerId = (data['reader_id'] as num?)?.toInt();
+    final readAt = DateTime.tryParse('${data['read_at']}')?.toLocal() ?? DateTime.now();
+    final list = (state.value ?? const <RideMessage>[])
+        // Only my own messages get ticked, and only by the other party.
+        .map((m) => m.isMine && !m.isRead && m.senderId != readerId ? m.copyWith(readAt: readAt) : m)
+        .toList();
+    state = AsyncData(list);
+  }
+
+  List<RideMessage> _sorted(List<RideMessage> list) =>
+      list..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+  Future<void> send(String body) async {
+    final rideId = _rideId;
+    final text = body.trim();
+    if (rideId == null || text.isEmpty) return;
+
+    final me = ref.read(currentUserProvider);
+    final echo = RideMessage(
+      // Negative id: a local echo never collides with a server id.
+      id: -DateTime.now().microsecondsSinceEpoch,
+      rideId: rideId,
+      senderId: me?.id ?? 0,
+      senderName: me?.firstName?.isNotEmpty == true ? me!.firstName! : (me?.username ?? ''),
+      senderRole: me?.role ?? UserRole.unknown,
+      body: text,
+      createdAt: DateTime.now(),
+      isMine: true,
+      pending: true,
+    );
+    state = AsyncData(_sorted([...(state.value ?? const []), echo]));
+
+    try {
+      final saved = await ref.read(ridesRepositoryProvider).sendMessage(rideId, text);
+      final list = [...(state.value ?? const <RideMessage>[])]
+        ..removeWhere((m) => m.id == echo.id);
+      _upsert(saved);
+      state = AsyncData(_sorted([...list.where((m) => m.id != saved.id), saved]));
+    } catch (e) {
+      final list = (state.value ?? const <RideMessage>[])
+          .map((m) => m.id == echo.id ? m.copyWith(pending: false, failed: true) : m)
+          .toList();
+      state = AsyncData(list);
+      rethrow;
+    }
+  }
+
+  /// Re-sends a message that failed, dropping the failed echo.
+  Future<void> retry(RideMessage failed) async {
+    final list = (state.value ?? const <RideMessage>[]).where((m) => m.id != failed.id).toList();
+    state = AsyncData(list);
+    await send(failed.body);
+  }
+
+  Future<void> markRead() async {
+    final rideId = _rideId;
+    if (rideId == null) return;
+    if (!(state.value ?? const <RideMessage>[]).any((m) => !m.isMine && !m.isRead)) return;
+    try {
+      await ref.read(ridesRepositoryProvider).markMessagesRead(rideId);
+      final now = DateTime.now();
+      state = AsyncData(
+        (state.value ?? const <RideMessage>[])
+            .map((m) => !m.isMine && !m.isRead ? m.copyWith(readAt: now) : m)
+            .toList(),
+      );
+    } catch (_) {}
+  }
+}
+
+final rideChatProvider = AsyncNotifierProvider<RideChatNotifier, List<RideMessage>>(
+  RideChatNotifier.new,
+);
+
+/// Messages received on the active ride that the user has not read yet.
+final rideChatUnreadProvider = Provider<int>((ref) {
+  final messages = ref.watch(rideChatProvider).value ?? const <RideMessage>[];
+  return messages.where((m) => !m.isMine && !m.isRead).length;
+});
+
+// ────────────────────────────── driver gps beacon ────────────────────────────
+
+/// Pushes the driver's GPS while they are online.
+///
+/// Deliberately outside the dashboard widget: dispatch rejects any driver whose
+/// position is older than `LOCATION_MAX_AGE_S`, so walking to the wallet or
+/// profile screen must not stop the beacon.
+class DriverLocationBeaconNotifier extends Notifier<bool> {
+  Timer? _timer;
+
+  @override
+  bool build() {
+    final (role, status) = ref.watch(
+      authControllerProvider.select((s) => (s.role, s.driverProfile?.status)),
+    );
+    _timer?.cancel();
+    _timer = null;
+    ref.onDispose(() => _timer?.cancel());
+    if (role != UserRole.driver || status != DriverStatus.available) return false;
+
+    _timer = Timer.periodic(AppConfig.locationPushInterval, (_) => push());
+    Future.microtask(push);
+    return true;
+  }
+
+  Future<void> push() async {
+    // During a ride the tracker already streams positions.
+    if (ref.read(currentRideProvider).value?.status.hasDriver ?? false) return;
+    final p = await ref.read(locationServiceProvider).currentPosition();
+    if (p == null) return;
+    try {
+      await ref.read(authRepositoryProvider).updateLocation(lat: p.lat, lng: p.lng);
+    } catch (_) {}
+  }
+}
+
+final driverLocationBeaconProvider =
+    NotifierProvider<DriverLocationBeaconNotifier, bool>(DriverLocationBeaconNotifier.new);
 
 // ─────────────────────────────── driver offers ───────────────────────────────
 

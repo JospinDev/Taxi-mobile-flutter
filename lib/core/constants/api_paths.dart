@@ -71,6 +71,10 @@ class ApiPaths {
   static String rideRate(int id) => 'rides/$id/rate/';
   static String rideConfirmPayment(int id) => 'rides/$id/confirm-payment/';
 
+  // ─────────────────────────── MODULE 9 — CHAT ────────────────────────────────
+  static String rideMessages(int id) => 'rides/$id/messages/';
+  static String rideMessagesRead(int id) => 'rides/$id/messages/read/';
+
   // ─────────────────────── MODULE 7 — PAYMENTS & WALLET ───────────────────────
   static const wallets = 'payments/wallets/';
   static const myWallet = 'payments/wallets/me/';

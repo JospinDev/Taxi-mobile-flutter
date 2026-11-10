@@ -57,11 +57,13 @@ class AuthRepository {
   Future<void> updateLocation({required double lat, required double lng}) =>
       _api.patch(ApiPaths.myDriverLocation, data: {'lat': lat, 'lng': lng});
 
-  Future<String> updateStatus(String status) async {
-    final data = await _api.patch(
-      ApiPaths.myDriverStatus,
-      data: {'status': status},
-    );
+  Future<String> updateStatus(String status, {double? lat, double? lng}) async {
+    final body = <String, dynamic>{'status': status};
+    if (lat != null && lng != null) {
+      body['lat'] = lat;
+      body['lng'] = lng;
+    }
+    final data = await _api.patch(ApiPaths.myDriverStatus, data: body);
     return '${(data as Map)['status']}';
   }
 }

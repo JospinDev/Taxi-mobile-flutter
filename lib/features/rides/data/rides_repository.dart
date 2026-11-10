@@ -2,6 +2,7 @@ import '../../../core/constants/api_paths.dart';
 import '../../../core/models/geo_point.dart';
 import '../../../core/models/paginated.dart';
 import '../../../core/network/api_client.dart';
+import 'models/ride_message_model.dart';
 import 'models/ride_model.dart';
 
 /// Rides, dispatch & tracking API (backend modules 5 & 6).
@@ -126,6 +127,38 @@ class RidesRepository {
       trafficMinutes: double.tryParse('${map['traffic_minutes']}') ?? 0,
     );
   }
+
+  // ──────────────────────────────── chat ─────────────────────────────────────
+
+  /// Full thread, oldest first. Paginated server-side; we read every page so a
+  /// long ride still shows its whole history.
+  Future<List<RideMessage>> messages(int rideId) async {
+    final out = <RideMessage>[];
+    var page = 1;
+    while (true) {
+      final data = await _api.get(
+        ApiPaths.rideMessages(rideId),
+        query: {'page': page, 'page_size': 100},
+      );
+      // DRF returns a bare list when pagination is off, a map otherwise.
+      final rows = data is Map ? (data['results'] as List? ?? const []) : (data as List);
+      out.addAll(
+        rows.whereType<Map>().map((e) => RideMessage.fromJson(e.cast<String, dynamic>())),
+      );
+      final hasNext = data is Map && data['next'] != null;
+      if (!hasNext) break;
+      page++;
+    }
+    return out;
+  }
+
+  Future<RideMessage> sendMessage(int rideId, String body) async {
+    final data = await _api.post(ApiPaths.rideMessages(rideId), data: {'body': body});
+    return RideMessage.fromJson((data as Map).cast<String, dynamic>());
+  }
+
+  Future<void> markMessagesRead(int rideId) =>
+      _api.post(ApiPaths.rideMessagesRead(rideId));
 
   // ─────────────────────────────── admin ─────────────────────────────────────
 
